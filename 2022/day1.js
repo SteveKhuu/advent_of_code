@@ -12,6 +12,7 @@ function elfWithMostCalories() {
     //We don't actually need these, but good to know :)
     let elfTracker = 1;
     let elfWithHighestTotal = 1;
+    
     let calorieTracker = [];
 
     let totalCalories = 0;
