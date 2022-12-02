@@ -1,24 +1,17 @@
-const fs = require("fs");
-const path = require("path");
+const fileUtil = require('./common/filereader');
 
-function elfWithMostCalories() {
-  fs.readFile(__dirname + '/day1_input.txt', (err, data) => {
-    if (err) throw err;
+async function elfWithMostCalories() {
+  //We don't actually need these, but good to know :)
+  let elfTracker = 1;
+  let elfWithHighestTotal = 1;
 
-    let rawData = data.toString();
+  let calorieTracker = [];
 
-    const inputs = rawData.split('\n');
+  let totalCalories = 0;
+  let highestTotal = 0;
 
-    //We don't actually need these, but good to know :)
-    let elfTracker = 1;
-    let elfWithHighestTotal = 1;
-    
-    let calorieTracker = [];
-
-    let totalCalories = 0;
-    let highestTotal = 0;
-
-    [].forEach.call(inputs, function(input) {
+  await fileUtil.fileReader('/day1_input.txt', function (inputs) {
+    [].forEach.call(inputs, function (input) {
       if (input === '') {
         if (totalCalories > highestTotal) {
           highestTotal = totalCalories;
@@ -32,17 +25,22 @@ function elfWithMostCalories() {
         totalCalories += parseInt(input, 10);
       }
     });
-
-    // Part One
-    console.log(highestTotal);
-
-    // Part Two
-    console.log(
-      calorieTracker.sort((a, b) => { return a - b })
-                    .slice(-3)
-                    .reduce((acc, el) => {return acc + el}, 0)
-    );
   });
+
+  // Part One
+  console.log(highestTotal);
+
+  // Part Two
+  console.log(
+    calorieTracker
+      .sort((a, b) => {
+        return a - b;
+      })
+      .slice(-3)
+      .reduce((acc, el) => {
+        return acc + el;
+      }, 0),
+  );
 }
 
 elfWithMostCalories();
