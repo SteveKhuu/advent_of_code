@@ -10,21 +10,19 @@ async function elfWithMostCalories() {
   let totalCalories = 0;
   let highestTotal = 0;
 
-  await fileUtil.fileReader('/day1_input.txt', function (inputs) {
-    [].forEach.call(inputs, function (input) {
-      if (input === '') {
-        if (totalCalories > highestTotal) {
-          highestTotal = totalCalories;
-          elfWithHighestTotal = elfTracker;
-        }
-
-        calorieTracker.push(totalCalories);
-        elfTracker++;
-        totalCalories = 0;
-      } else {
-        totalCalories += parseInt(input, 10);
+  await fileUtil.fileReader('/day1_input.txt', (input) => {
+    if (input === '') {
+      if (totalCalories > highestTotal) {
+        highestTotal = totalCalories;
+        elfWithHighestTotal = elfTracker;
       }
-    });
+
+      calorieTracker.push(totalCalories);
+      elfTracker++;
+      totalCalories = 0;
+    } else {
+      totalCalories += parseInt(input, 10);
+    }
   });
 
   // Part One

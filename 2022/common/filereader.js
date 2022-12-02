@@ -8,7 +8,9 @@ const fileReader = async (filepath, callback, denominator = '\n') => {
 
   let rawData = data.toString();
 
-  callback(rawData.split(denominator));
+  [].forEach.call(rawData.split(denominator), function (input) {
+    callback(input);
+  });
 };
 
 exports.fileReader = fileReader;
