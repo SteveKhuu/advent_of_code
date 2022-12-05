@@ -6,23 +6,21 @@ async function getFinalCrateMessage() {
 
   await fileUtil.fileReader('/day5_input.txt', (input) => {
     // Parse stack
-    if (input.indexOf('move') == -1) {
-      if (input.indexOf('[') != -1) {
-        for (let i = 1; i < input.length; i += 4) {
-          let stackIndex = (i - 1) / 4;
+    if (input.indexOf('[') != -1) {
+      for (let i = 1; i < input.length; i += 4) {
+        let stackIndex = (i - 1) / 4;
 
-          if (typeof stacks[stackIndex] == 'undefined') {
-            stacks[stackIndex] = [];
-            stacksPartTwo[stackIndex] = [];
-          }
+        if (typeof stacks[stackIndex] == 'undefined') {
+          stacks[stackIndex] = [];
+          stacksPartTwo[stackIndex] = [];
+        }
 
-          if (input.charAt(i) != ' ') {
-            stacks[stackIndex].push(input.charAt(i));
-            stacksPartTwo[stackIndex].push(input.charAt(i));
-          }
+        if (input.charAt(i) != ' ') {
+          stacks[stackIndex].push(input.charAt(i));
+          stacksPartTwo[stackIndex].push(input.charAt(i));
         }
       }
-    } else {
+    } else if (input.indexOf('move') != -1) {
       // Read instructions
       let numericInstructionsRegex = /[0-9]+/g;
       let [numToShift, from, to] = input.match(numericInstructionsRegex);
