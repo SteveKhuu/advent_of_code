@@ -3,9 +3,9 @@ const fileUtil = require('./common/filereader');
 let visitedPlaces = {};
 
 function debugString(visitedPlaces, size) {
-  for (let x = -1 * size; x < size; x++) {
+  for (let y = -1 * size; y < size; y++) {
     let row = '';
-    for (let y = -1 * size; y < size; y++) {
+    for (let x = -1 * size; x < size; x++) {
       let key = `${x},${y}`;
 
       if (visitedPlaces.hasOwnProperty(key)) {
@@ -19,37 +19,25 @@ function debugString(visitedPlaces, size) {
 }
 
 async function getTailRopeVisits(numTails) {
-  let currentPositionH = [0, 0];
-
-  let knots = Array(numTails).fill([0, 0]);
+  let knots = Array(numTails + 1).fill([0, 0]);
 
   let directionalMapping = {
-    R: { vector: 1, axis: 1, opposite: 'L' },
-    L: { vector: -1, axis: 1, opposite: 'R' },
-    U: { vector: -1, axis: 0, opposite: 'D' },
-    D: { vector: 1, axis: 0, opposite: 'U' },
+    R: { vector: 1, axis: 0, opposite: 'L' },
+    L: { vector: -1, axis: 0, opposite: 'R' },
+    U: { vector: -1, axis: 1, opposite: 'D' },
+    D: { vector: 1, axis: 1, opposite: 'U' },
   };
 
-  function moveTail(previousHPos, leader, index) {
+  function moveTail(leader, index) {
     let tail = knots[index];
-    let diffX = Math.abs(leader[1] - tail[1]);
-    let diffY = Math.abs(leader[0] - tail[0]);
-
-    let previousState = [...knots[index]];
+    let diffX = Math.abs(leader[0] - tail[0]);
+    let diffY = Math.abs(leader[1] - tail[1]);
 
     if (diffX > 1 || diffY > 1) {
-      if (diffX == 0 || diffY == 0) {
-        knots[index] = previousHPos;
-      } else {
-        if (diffX > 1) {
-          knots[index] = [leader[0], previousHPos[1]];
-        } else {
-          knots[index] = [previousHPos[0], leader[1]];
-        }
-      }
+      tail[0] += Math.sign(leader[0] - tail[0]);
+      tail[1] += Math.sign(leader[1] - tail[1]);
+      knots[index] = [...tail];
     }
-
-    return previousState;
   }
 
   await fileUtil.fileReader('/day9_input.txt', (input) => {
@@ -62,14 +50,13 @@ async function getTailRopeVisits(numTails) {
     let posAxis = directionalMeta.axis;
 
     for (let s = 0; s < amount; s++) {
-      let previousHPos = [...currentPositionH];
-      currentPositionH[posAxis] += 1 * change;
+      let head = [...knots[0]];
+      head[posAxis] += 1 * change;
+      knots[0] = [...head];
+      moveTail(knots[0], 1);
 
-      let previousTailer = moveTail(previousHPos, currentPositionH, 0);
-
-      for (let k = 1; k < knots.length; k++) {
-        let currentTailer = [...knots[k - 1]];
-        previousTailer = moveTail(previousTailer, currentTailer, k);
+      for (let k = 2; k < knots.length; k++) {
+        moveTail(knots[k - 1], k);
       }
       const tailPosKey = knots[knots.length - 1].toString();
 
@@ -79,7 +66,6 @@ async function getTailRopeVisits(numTails) {
   });
 
   console.log(Object.keys(visitedPlaces).length);
-  console.log(Object.values(visitedPlaces).filter((p) => p > 1).length);
   debugString(visitedPlaces, 30);
 }
 
