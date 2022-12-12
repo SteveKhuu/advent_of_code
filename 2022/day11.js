@@ -1,7 +1,7 @@
 const fileUtil = require('./common/filereader');
 
 let monkies = [];
-let modulus = BigInt(1); //Borrowing black magic suggestion
+let modulus = 1; //Borrowing black magic suggestion
 
 const THREE = toStableNumber('3');
 
@@ -21,9 +21,6 @@ class Monkey {
   inspectItems() {
     let monkeyScript = this.operation;
 
-    // let reg = /[\d]+/g;
-    // monkeyScript = monkeyScript.replace(reg, "`${('0x' + parseInt($&,10).toString(16))}`");
-
     const runOperation = function (old) {
       let [_, operator, right] = monkeyScript.split(' ');
 
@@ -39,15 +36,10 @@ class Monkey {
     while (this.startingItems.length) {
       let startingItem = this.startingItems.shift();
 
-      //TODO: find a way to make hex work
-      //let newWorryLevel = `0x${runOperation(startingItem)}`;
       let newWorryLevel = toStableNumber(runOperation(startingItem));
 
       if (!this.hasRelief) {
-        newWorryLevel = Math.floor(
-          parseInt(newWorryLevel.toString(10), 10) / parseInt(THREE.toString(10), 10),
-        );
-        newWorryLevel = BigInt(newWorryLevel);
+        newWorryLevel = Math.floor(newWorryLevel / THREE);
       } else {
         newWorryLevel = newWorryLevel % modulus; // How does this shit work?!?!
       }
@@ -69,14 +61,14 @@ class Monkey {
   toString() {
     return `inspected ${this.#inspectionCount} times`;
   }
+
+  inspectionCount() {
+    return this.#inspectionCount;
+  }
 }
 
 function toStableNumber(str) {
-  //Hex strategy fails when number gets too large :(
-  // let parsedHex = '0x' + parseInt(str, 10).toString(16);
-  // return `${parsedHex}`;
-
-  return BigInt(parseInt(str, 10));
+  return parseInt(str, 10);
 }
 
 async function loadMonkeySim(hasRelief) {
@@ -115,32 +107,41 @@ async function runMonkeySim(rounds) {
       monkey.inspectItems();
     });
   }
+}
 
+function reset() {
+  monkies = [];
+  modulus = 1;
+}
+
+function resolve() {
+  let inspectionCounts = [];
   [].forEach.call(monkies, function (monkey, i) {
-    console.log(`Monkey ${i}: ${monkey.toString()}`);
+    inspectionCounts.push(monkey.inspectionCount());
   });
+
+  let topTwo = inspectionCounts
+    .sort((a, b) => {
+      return a - b;
+    })
+    .slice(-2);
+  console.log(topTwo[0] * topTwo[1]);
 }
 
 //Part 1
 async function part1() {
   await loadMonkeySim();
   await runMonkeySim(20);
+  resolve();
+  reset();
 }
 
 //Part 2
-async function runLongerSim(totalNumberOfSims, simsPerCycle = 20) {
-  let repetitons = totalNumberOfSims / simsPerCycle;
-
-  while (repetitons > 0) {
-    await runMonkeySim(simsPerCycle);
-    repetitons--;
-  }
-}
-
 async function part2() {
   await loadMonkeySim(true);
-  await runLongerSim(10000);
+  await runMonkeySim(10000);
+  resolve();
 }
 
-// part1(); //101,95,7,105
+part1();
 part2();
