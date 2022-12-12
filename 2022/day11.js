@@ -1,4 +1,3 @@
-const { timingSafeEqual } = require('crypto');
 const fileUtil = require('./common/filereader');
 
 let monkies = [];
