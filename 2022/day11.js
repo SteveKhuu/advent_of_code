@@ -1,6 +1,7 @@
 const fileUtil = require('./common/filereader');
 
 let monkies = [];
+let modulus = BigInt(1); //Borrowing black magic suggestion
 
 const THREE = toStableNumber('3');
 
@@ -43,8 +44,12 @@ class Monkey {
       let newWorryLevel = toStableNumber(runOperation(startingItem));
 
       if (!this.hasRelief) {
-        newWorryLevel = Math.floor(parseInt(newWorryLevel.toString(10), 10) / parseInt(THREE, 10));
+        newWorryLevel = Math.floor(
+          parseInt(newWorryLevel.toString(10), 10) / parseInt(THREE.toString(10), 10),
+        );
         newWorryLevel = BigInt(newWorryLevel);
+      } else {
+        newWorryLevel = newWorryLevel % modulus; // How does this shit work?!?!
       }
 
       if (newWorryLevel % this.divisibleBy == 0) {
@@ -92,6 +97,8 @@ async function loadMonkeySim(hasRelief) {
       currentMonkey.operation = operationString;
     } else if (input.indexOf('Test') != -1) {
       currentMonkey.divisibleBy = toStableNumber(input.split(' ').pop());
+
+      modulus *= currentMonkey.divisibleBy;
     } else if (input.indexOf('true') != -1) {
       currentMonkey.firstChoice = parseInt(input.split(' ').pop(), 10);
     } else if (input.indexOf('false') != -1) {
@@ -132,7 +139,7 @@ async function runLongerSim(totalNumberOfSims, simsPerCycle = 20) {
 
 async function part2() {
   await loadMonkeySim(true);
-  await runLongerSim(1000);
+  await runLongerSim(10000);
 }
 
 // part1(); //101,95,7,105
