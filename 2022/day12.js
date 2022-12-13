@@ -1,6 +1,5 @@
 const fileUtil = require('./common/filereader');
 
-let characters = [...Array(26)].map((x, i) => String.fromCharCode(i + 97));
 const START = 'S';
 const END = 'E';
 const DIRECTIONS = [
@@ -12,12 +11,36 @@ const DIRECTIONS = [
 
 let grid = [];
 let startCoords = [];
+let otherPossibleStarts = [];
 let endCoords = [];
 
 let maxHeight = 0;
 let maxWidth = 0;
 
-let shortestPath = {};
+function isNotAValidDirection(x, y, currentHeight, visited) {
+  return (
+    x < 0 ||
+    y < 0 ||
+    x == maxWidth ||
+    y == maxHeight ||
+    visited.hasOwnProperty(`${x},${y}`) ||
+    notValidNextCharacter(currentHeight, grid[y][x])
+  );
+}
+
+function notValidNextCharacter(current, next) {
+  let currentVal = current.charCodeAt(0);
+  if (current == START) {
+    currentVal = 'a'.charCodeAt(0);
+  }
+
+  let nextVal = next.charCodeAt(0);
+  if (next == END) {
+    nextVal = 'z'.charCodeAt(0);
+  }
+
+  return nextVal > currentVal + 1;
+}
 
 async function parseGrid() {
   let currentY = 0;
@@ -28,6 +51,10 @@ async function parseGrid() {
 
     if (input.indexOf(START) != -1) {
       startCoords = [startX, currentY];
+    }
+
+    if (input.indexOf('a') != -1) {
+      otherPossibleStarts.push({ x: input.indexOf('a'), y: currentY, steps: 0 });
     }
 
     if (input.indexOf(END) != -1) {
@@ -42,11 +69,15 @@ async function parseGrid() {
   maxWidth = grid[0].length;
 }
 
-function walkGrid() {
+function walkGrid(part) {
   let directionsToGo = [];
   let visited = {};
 
-  directionsToGo.push({ x: startCoords[0], y: startCoords[1], steps: 0 });
+  if (part == 1) {
+    directionsToGo.push({ x: startCoords[0], y: startCoords[1], steps: 0 });
+  } else {
+    directionsToGo = [...otherPossibleStarts];
+  }
 
   while (directionsToGo.length > 0) {
     let { x, y, steps } = directionsToGo.shift();
@@ -76,48 +107,10 @@ function walkGrid() {
   }
 }
 
-function isNotAValidDirection(x, y, currentHeight, visited) {
-  return (
-    x < 0 ||
-    y < 0 ||
-    x == maxWidth ||
-    y == maxHeight ||
-    visited.hasOwnProperty(`${x},${y}`) ||
-    notValidNextCharacter(currentHeight, grid[y][x])
-  );
-}
-
-function notValidNextCharacter(current, next) {
-  let currentVal = current.charCodeAt(0);
-  if (current == START) {
-    currentVal = 'a'.charCodeAt(0);
-  }
-
-  let nextVal = next.charCodeAt(0);
-  if (next == END) {
-    nextVal = 'z'.charCodeAt(0);
-  }
-
-  return nextVal > currentVal + 1;
-}
-
-function isAValidDirection(x, y, currentHeight, explored) {
-  return (
-    (x >= 0 &&
-      x < maxWidth &&
-      y >= 0 &&
-      y < maxHeight &&
-      !explored.hasOwnProperty(`${x},${y}`) &&
-      (currentHeight.charCodeAt(0) + 1 === grid[y][x].charCodeAt(0) ||
-        currentHeight.charCodeAt(0) === grid[y][x].charCodeAt(0))) ||
-    (currentHeight == 'S' && grid[y][x] == 'a') ||
-    ((currentHeight == 'y' || currentHeight == 'z') && grid[y][x] === END)
-  );
-}
-
 async function solve() {
   await parseGrid();
-  walkGrid(startCoords[0], startCoords[1], {});
+  walkGrid(1);
+  walkGrid(2);
 }
 
 solve();
