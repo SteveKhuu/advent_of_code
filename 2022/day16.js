@@ -13,6 +13,8 @@ const STARTING_TUNNEL = 'AA';
  * - get all non-zero valves
  * - for every tunnel, map the shortest way to reach that tunnel
  * - synthesize a set of strategies/permutations for the correct order of valves we care about
+ *    - strategy 1: generate sequences using a binary tree (shortest distance or largest value)
+ *    - strategy 2: similar to strategy 1, but take top 2-3 (this approach didn't scale)
  * - run through each strategy until you find the largest overall value
  */
 
@@ -146,22 +148,25 @@ async function openValves() {
   console.log('generating maps.....');
   mapPathsToImportantTunnels();
   console.log('permuting.....');
-  // [].forEach.call(importantTunnels, function (importantTunnel) {
-  //   let strategy = paths[STARTING_TUNNEL].strategies[importantTunnel];
-  //   let time = 30 - strategy.split(',').length + 1;
-  //   let flowValue = paths[importantTunnel].flow;
+  [].forEach.call(importantTunnels, function (importantTunnel) {
+    let strategy = paths[STARTING_TUNNEL].strategies[importantTunnel];
+    let time = 30 - strategy.split(',').length + 1;
+    let flowValue = paths[importantTunnel].flow;
 
-  //   console.log(`${strategy} = ${time} * ${flowValue} = ${time * flowValue}`);
-  // });
+    console.log(`${strategy} = ${time} * ${flowValue} = ${time * flowValue}`);
+  });
 
   function synthesizeBinaryTreeSequence(startingTunnel, tunnelsRemaining, remainingTime) {
     let options = {
       shortestTime: '',
       largestGain: '',
+      midOptimal: '',
     };
 
     let shortestTime = remainingTime;
     let largestGain = 0;
+
+    let misc = [];
 
     [].forEach.call(tunnelsRemaining, function (tunnel) {
       let strategy = paths[startingTunnel].strategies[tunnel];
@@ -170,23 +175,28 @@ async function openValves() {
       let flowValue = paths[tunnel].flow;
       let potentialValue = timePotential * flowValue;
 
-      if (potentialValue > largestGain && timeUsed < remainingTime) {
+      let tunnelInfo = {
+        key: tunnel,
+        timeUsed: timeUsed,
+        potentialValue: potentialValue,
+      };
+
+      if (potentialValue > largestGain) {
         largestGain = potentialValue;
-        options.largestGain = {
-          key: tunnel,
-          timeUsed: timeUsed,
-          potentialValue: largestGain,
-        };
+        options.largestGain = tunnelInfo;
       }
 
-      if (timeUsed < shortestTime && timeUsed < remainingTime) {
+      if (timeUsed < shortestTime) {
         shortestTime = timeUsed;
-        options.shortestTime = {
-          key: tunnel,
-          timeUsed: timeUsed,
-          potentialValue: potentialValue,
-        };
+        options.shortestTime = tunnelInfo;
+      } else if (timeUsed == shortestTime) {
+        if (options.shortestTime && options.shortestTime.potentialValue < potentialValue) {
+          shortestTime = timeUsed;
+          options.shortestTime = tunnelInfo;
+        }
       }
+
+      misc.push(tunnelInfo);
     });
 
     let chosenShortest = options.shortestTime
@@ -205,10 +215,22 @@ async function openValves() {
         )
       : null;
 
+    let exp = misc
+      .filter((m) => m.timeUsed <= 3) //use 4 for the part 1 input. play around with this value
+      .sort((a, b) => b.potentialValue - a.potentialValue)[0];
+    let chosenMid = exp
+      ? synthesizeBinaryTreeSequence(
+          exp.key,
+          tunnelsRemaining.filter((t) => t != exp.key),
+          remainingTime - exp.timeUsed,
+        )
+      : null;
+
     return {
       current: startingTunnel,
       shortestTime: chosenShortest,
       largestGain: chosenLargest,
+      midOptimal: chosenMid,
     };
   }
 
@@ -281,12 +303,14 @@ async function openValves() {
       nextSequence.push(nextTunnel.current);
       generateSequencesFromTree(nextTunnel, 'largestGain', nextSequence);
       generateSequencesFromTree(nextTunnel, 'shortestTime', nextSequence);
+      generateSequencesFromTree(nextTunnel, 'midOptimal', nextSequence);
     }
   }
 
   function generatePermutationHash(sequenceTree) {
     generateSequencesFromTree(sequenceTree, 'largestGain', [STARTING_TUNNEL]);
     generateSequencesFromTree(sequenceTree, 'shortestTime', [STARTING_TUNNEL]);
+    generateSequencesFromTree(sequenceTree, 'midOptimal', [STARTING_TUNNEL]);
   }
 
   let sequencePermutations2 = {};
@@ -407,6 +431,8 @@ async function openValves() {
   // ['CG', 'AJ', 'WI', 'VD', 'ZR', 'PI', 'LM', 'KU', 'AX', 'OF'];
 
   //DD BB JJ HH EE CC
+
+  //Best score on highest is 1786
 }
 
 openValves();
