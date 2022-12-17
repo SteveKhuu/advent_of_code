@@ -5,52 +5,16 @@ let valveReg = /[A-Z]{2}/g;
 let paths = {};
 
 let importantTunnels = [];
-let importantTunnelPermutations = {};
 
 const STARTING_TUNNEL = 'AA';
 
-function permutator(list) {
-  let results = [];
-
-  function permute(arr, memo) {
-    let cur;
-    memo = memo || [];
-
-    for (let i = 0; i < arr.length; i++) {
-      cur = arr.splice(i, 1);
-      if (arr.length === 0) {
-        results.push(memo.concat(cur));
-      }
-      permute(arr.slice(), memo.concat(cur));
-      arr.splice(i, 0, cur[0]);
-    }
-
-    return results;
-  }
-
-  permute(list);
-
-  return results;
-}
-
-function collectPermutations(left, right) {
-  let permutations = {};
-
-  [].forEach.call(right, function (combination) {
-    let results = left.concat(combination);
-    let key = results.toString();
-    // importantTunnelPermutations[`${key}`] = {
-    //   sequence: result,
-    //   maxValue: 0,
-    // };
-    permutations[`${key}`] = {
-      sequence: result,
-      maxValue: 0,
-    };
-  });
-
-  return permutations;
-}
+/*
+ * TL; DR of the below approach
+ * - get all non-zero valves
+ * - for every tunnel, map the shortest way to reach that tunnel
+ * - synthesize a set of strategies/permutations for the correct order of valves we care about
+ * - run through each strategy until you find the largest overall value
+ */
 
 function shortestPath(source, target) {
   let queue = [source],
@@ -76,7 +40,6 @@ function shortestPath(source, target) {
         }
         path.push(u);
         path.reverse();
-        // console.log(`Shortest path for ${source} to ${target} ${path.join(',')}`);
         return path.join(',');
       }
       predecessor[v] = u;
@@ -85,17 +48,12 @@ function shortestPath(source, target) {
   }
 }
 
-function determineShortestPath2(path, target) {
-  return shortestPath(path.name, target);
-}
-
 function mapPathsToImportantTunnels() {
   [].forEach.call(Object.values(paths), function (path) {
     let strategies = {};
 
     [].forEach.call(importantTunnels, function (tunnel) {
-      // strategies[tunnel] = determineShortestPath(path, tunnel);
-      strategies[tunnel] = determineShortestPath2(path, tunnel);
+      strategies[tunnel] = shortestPath(path.name, tunnel);
       path, tunnel;
     });
 
@@ -103,9 +61,9 @@ function mapPathsToImportantTunnels() {
   });
 }
 
-function simulatePermutation(permutationKey) {
+function simulatePermutation(permutationKey, permutationsToRun) {
   let startingTunnel = STARTING_TUNNEL;
-  let tunnelSequence = [...importantTunnelPermutations[permutationKey].sequence];
+  let tunnelSequence = [...permutationsToRun[permutationKey].sequence];
 
   let runningCost = 0;
   let runningValue = 0;
@@ -121,11 +79,8 @@ function simulatePermutation(permutationKey) {
 
       for (let s = 1; s < strategy.length; s++) {
         runningCost++;
-        importantTunnelPermutations[permutationKey].maxValue += runningValue;
+        permutationsToRun[permutationKey].maxValue += runningValue;
 
-        // console.log(`== Minute ${runningCost} ==`);
-        // console.log(`You move to valve ${strategy[s]}.`);
-        // console.log(' ');
         if (runningCost == 30) {
           exhausted = true;
           break;
@@ -138,35 +93,25 @@ function simulatePermutation(permutationKey) {
     }
 
     runningCost++;
-    importantTunnelPermutations[permutationKey].maxValue += runningValue;
-    // console.log(`== Minute ${runningCost} ==`);
+    permutationsToRun[permutationKey].maxValue += runningValue;
 
     if (nextTarget) {
-      // console.log(`You open valve ${nextTarget}.`);
       opened.push(nextTarget);
       runningValue += paths[nextTarget].flow;
       startingTunnel = nextTarget;
     }
-    console.log(' ');
   }
-
-  // console.log(
-  //   `Sequence ${permutationKey} has cost of ${runningCost} and reward of ${importantTunnelPermutations[permutationKey].maxValue}`,
-  // );
-
-  return importantTunnelPermutations[permutationKey].maxValue;
+  return permutationsToRun[permutationKey].maxValue;
 }
 
 function runPermutations(permutationsToRun) {
   let highestValue = 0;
   let highestValueKey = '';
 
-  //let test = Object.keys(importantTunnelPermutations); //['DD,BB,JJ,HH,EE,CC']; //Object.keys(importantTunnelPermutations)
-
   let test = Object.keys(permutationsToRun);
 
   [].forEach.call(test, function (permutationKey) {
-    let value = simulatePermutation(permutationKey);
+    let value = simulatePermutation(permutationKey, permutationsToRun);
 
     if (value > highestValue) {
       highestValue = value;
@@ -174,8 +119,6 @@ function runPermutations(permutationsToRun) {
     }
   });
 
-  //DD, BB, JJ, HH, EE, CC
-  // console.log(`Best sequence is ${highestValueKey} with a value of ${highestValue}`);
   return [highestValue, highestValueKey];
 }
 
@@ -200,94 +143,201 @@ async function openValves() {
     }
   });
 
-  // console.log(`permuting..... ${importantTunnels.toString()}`);
-
   console.log('generating maps.....');
   mapPathsToImportantTunnels();
   console.log('permuting.....');
-  [].forEach.call(importantTunnels, function (importantTunnel) {
-    let strategy = paths[STARTING_TUNNEL].strategies[importantTunnel];
-    let time = 30 - strategy.split(',').length + 1;
-    let flowValue = paths[importantTunnel].flow;
+  // [].forEach.call(importantTunnels, function (importantTunnel) {
+  //   let strategy = paths[STARTING_TUNNEL].strategies[importantTunnel];
+  //   let time = 30 - strategy.split(',').length + 1;
+  //   let flowValue = paths[importantTunnel].flow;
 
-    console.log(`${strategy} = ${time} * ${flowValue} = ${time * flowValue}`);
-  });
+  //   console.log(`${strategy} = ${time} * ${flowValue} = ${time * flowValue}`);
+  // });
 
-  let left = permutator(['RC', 'GJ', 'QO', 'FR', 'FV']);
-  let right = permutator(['CG', 'AJ', 'WI', 'VD', 'ZR', 'PI', 'LM', 'KU', 'AX', 'OF']);
+  function synthesizeBinaryTreeSequence(startingTunnel, tunnelsRemaining, remainingTime) {
+    let options = {
+      shortestTime: '',
+      largestGain: '',
+    };
 
-  let best = [];
+    let shortestTime = remainingTime;
+    let largestGain = 0;
 
-  [].forEach.call(left, function (combination) {
-    let permutationsToRun = collectPermutations(combination, right);
-    let [highestValue, highestValueKey] = runPermutations(permutationsToRun);
+    [].forEach.call(tunnelsRemaining, function (tunnel) {
+      let strategy = paths[startingTunnel].strategies[tunnel];
+      let timeUsed = strategy.split(',').length;
+      let timePotential = remainingTime - timeUsed;
+      let flowValue = paths[tunnel].flow;
+      let potentialValue = timePotential * flowValue;
 
-    if (highestValue > best[0]) {
-      best = [highestValue, highestValueKey];
-    }
-  });
-  // collectPermutations(left, right);
-  // console.log(paths);
-  // runPermutations();
-
-  function findNextTunnel(tunnels, previousPath) {
-    let nextTunnel;
-
-    for (let t = 0; t < tunnels.length; t++) {
-      if (tunnels[t] != previousPath) {
-        nextTunnel = tunnels[t];
-        break;
+      if (potentialValue > largestGain && timeUsed < remainingTime) {
+        largestGain = potentialValue;
+        options.largestGain = {
+          key: tunnel,
+          timeUsed: timeUsed,
+          potentialValue: largestGain,
+        };
       }
-    }
 
-    return nextTunnel;
+      if (timeUsed < shortestTime && timeUsed < remainingTime) {
+        shortestTime = timeUsed;
+        options.shortestTime = {
+          key: tunnel,
+          timeUsed: timeUsed,
+          potentialValue: potentialValue,
+        };
+      }
+    });
+
+    let chosenShortest = options.shortestTime
+      ? synthesizeBinaryTreeSequence(
+          options.shortestTime.key,
+          tunnelsRemaining.filter((t) => t != options.shortestTime.key),
+          remainingTime - options['shortestTime'].timeUsed,
+        )
+      : null;
+
+    let chosenLargest = options.largestGain
+      ? synthesizeBinaryTreeSequence(
+          options.largestGain.key,
+          tunnelsRemaining.filter((t) => t != options.largestGain.key),
+          remainingTime - options['largestGain'].timeUsed,
+        )
+      : null;
+
+    return {
+      current: startingTunnel,
+      shortestTime: chosenShortest,
+      largestGain: chosenLargest,
+    };
   }
 
-  function report(m) {
-    console.log(`== Minute ${m + 1} ==`);
-    let openedValves = Object.keys(opened);
-    if (openedValves.length == 0) {
-      console.log('No valves are open.');
-    } else {
-      console.log(
-        `Valve(s) ${openedValves.toString()} is/are open, releasing ${currentPressure} pressure.`,
+  function synthesizeBinaryTreeSequence2(startingTunnel, tunnelsRemaining, remainingTime) {
+    let info = {};
+
+    [].forEach.call(tunnelsRemaining, function (tunnel) {
+      let strategy = paths[startingTunnel].strategies[tunnel];
+      let timeUsed = strategy.split(',').length;
+      let timePotential = remainingTime - timeUsed;
+      let flowValue = paths[tunnel].flow;
+      let potentialValue = timePotential * flowValue;
+
+      info[tunnel] = {
+        key: tunnel,
+        timeUsed: timeUsed,
+        potentialValue: potentialValue,
+      };
+    });
+
+    let subset = Math.min(tunnelsRemaining.length, 2);
+
+    let infoSet = Object.values(info);
+
+    let shortestTimes = infoSet
+      .sort((a, b) => {
+        return a.timeUsed - b.timeUsed;
+      })
+      .slice(0, subset);
+
+    let largestGains = infoSet
+      .sort((a, b) => {
+        return b.potentialValue - a.potentialValue;
+      })
+      .slice(0, subset);
+
+    let chosenShortSubset = shortestTimes.map((i) => {
+      return synthesizeBinaryTreeSequence2(
+        i.key,
+        tunnelsRemaining.filter((t) => t != i.key),
+        remainingTime - i.timeUsed,
       );
+    });
+    let chosenShortest = subset > 0 ? chosenShortSubset : null;
+
+    let chosenLargestSubset = largestGains.map((i) => {
+      return synthesizeBinaryTreeSequence2(
+        i.key,
+        tunnelsRemaining.filter((t) => t != i.key),
+        remainingTime - i.timeUsed,
+      );
+    });
+    let chosenLargest = subset > 0 ? chosenLargestSubset : null;
+
+    return {
+      current: startingTunnel,
+      shortestTimes: chosenShortest,
+      largestGains: chosenLargest,
+    };
+  }
+
+  function generateSequencesFromTree(sequenceTree, field, sequence) {
+    let nextTunnel = sequenceTree[field];
+    let nextSequence = [...sequence];
+    if (nextTunnel == null) {
+      let key = sequence.toString();
+      sequencePermutations[key] = sequence;
+      return;
+    } else {
+      nextSequence.push(nextTunnel.current);
+      generateSequencesFromTree(nextTunnel, 'largestGain', nextSequence);
+      generateSequencesFromTree(nextTunnel, 'shortestTime', nextSequence);
     }
   }
 
-  function part1() {
-    let previousPath;
-    let node = paths['AA'];
-
-    for (let m = 0; m < 30; m++) {
-      report(m);
-      totalPressure += currentPressure;
-
-      // For current node, open valves by flow if reachable
-
-      if (!opened.hasOwnProperty(node.name) && node.flow > 0) {
-        opened[node.name] = true;
-        currentPressure += node.flow;
-        console.log(`You open valve ${node.name}.`);
-      } else {
-        //next tunnel
-        let nextPath = findNextTunnel(node.tunnels, previousPath);
-
-        if (nextPath) {
-          previousPath = node.name;
-          node = paths[nextPath];
-          console.log(`You move to valve ${nextPath}.`);
-        } else {
-          console.log(`You did nothing.`);
-        }
-      }
-      console.log(' ');
-    }
-
-    console.log(`Final pressure: ${totalPressure}`);
+  function generatePermutationHash(sequenceTree) {
+    generateSequencesFromTree(sequenceTree, 'largestGain', [STARTING_TUNNEL]);
+    generateSequencesFromTree(sequenceTree, 'shortestTime', [STARTING_TUNNEL]);
   }
 
-  // part1();
+  let sequencePermutations2 = {};
+
+  function generateSequencesFromTree2(sequenceTree, field, sequence) {
+    let nextTunnels = sequenceTree[field];
+    let nextSequence = [...sequence];
+    if (nextTunnels == null) {
+      let key = sequence.toString();
+      sequencePermutations2[key] = sequence;
+      return;
+    } else {
+      [].forEach.call(nextTunnels, function (next) {
+        generateSequencesFromTree2(next, 'largestGains', [...nextSequence].concat(next.current));
+      });
+      [].forEach.call(nextTunnels, function (next) {
+        generateSequencesFromTree2(next, 'shortestTimes', [...nextSequence].concat(next.current));
+      });
+    }
+  }
+
+  function generatePermutationHash2(sequenceTree) {
+    [].forEach.call(sequenceTree.largestGains, function (next) {
+      generateSequencesFromTree2(next, 'largestGains', [STARTING_TUNNEL]);
+    });
+    [].forEach.call(sequenceTree.shortestTimes, function (next) {
+      generateSequencesFromTree2(next, 'shortestTimes', [STARTING_TUNNEL]);
+    });
+  }
+
+  let sequenceTree = synthesizeBinaryTreeSequence(STARTING_TUNNEL, importantTunnels, 30);
+  let sequencePermutations = {};
+
+  // let sequenceTree2 = synthesizeBinaryTreeSequence2(STARTING_TUNNEL, importantTunnels, 30);
+  // console.log(sequenceTree2);
+
+  console.log(sequenceTree);
+  generatePermutationHash(sequenceTree);
+
+  let permutationToTry = {};
+
+  [].forEach.call(Object.keys(sequencePermutations), function (sequenceKey) {
+    sequencePermutations[sequenceKey].shift();
+
+    permutationToTry[sequenceKey] = {
+      sequence: sequencePermutations[sequenceKey],
+      maxValue: 0,
+    };
+  });
+
+  console.log(runPermutations(permutationToTry));
 
   // Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
   // Valve BB has flow rate=13; tunnels lead to valves CC, AA
@@ -355,6 +405,8 @@ async function openValves() {
   // AA,VQ,PI,BK,AD,RC,WR,TX,FV,KV,OF = 20 * 19 = 380
   // ['RC', 'GJ', 'QO', 'FR', 'FV'];
   // ['CG', 'AJ', 'WI', 'VD', 'ZR', 'PI', 'LM', 'KU', 'AX', 'OF'];
+
+  //DD BB JJ HH EE CC
 }
 
 openValves();
