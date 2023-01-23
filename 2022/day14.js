@@ -100,7 +100,7 @@ async function simulateWaterfall() {
         console.log('done');
       } else if (objects[`500,0`]) {
         //Part 2
-        console.log('done2');
+        console.log('done part 2');
       } else {
         //Freefall wheeeee
         while (!currentObject) {
