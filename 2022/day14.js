@@ -55,7 +55,6 @@ async function simulateWaterfall() {
   }
 
   function plotNewBottom() {
-    // console.log(bottom + 2);
     bottom += 2;
 
     for (let r = 0; r < 800; r++) {
