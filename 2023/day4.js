@@ -49,12 +49,8 @@ const createCardDupes = (cardKey, numberOfDupes) => {
   }
 };
 
-
-
 const day4B = () => {
   let day4BSum = 0;
-
-  console.log(cardDupes);
 
   for(let k in cardDupes) {
     
