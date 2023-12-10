@@ -38,7 +38,7 @@ async function day4A() {
     }
   });
 
-  console.log(sum);
+  console.log(`Day 4A: ${sum}`);
   day4B();
 }
 
@@ -62,7 +62,7 @@ const day4B = () => {
     }
   }
 
-  console.log(day4BSum);
+  console.log(`Day 4B: ${day4BSum}`);
 
 };
 
