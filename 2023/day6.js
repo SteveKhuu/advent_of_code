@@ -23,6 +23,17 @@ const getRange = (t, d) => {
   console.log(`t=${t}, d=${d} => ${high-low+1}`);
 };
 
+
+const day6A = (times, distances) => {
+  for(let i = 0; i < times.length; i++) {
+    getRange(+times[i], +distances[i]);
+  }
+};
+
+const day6B = (times, distances) => {
+  getRange(+times.join(""), +distances.join(""));
+};
+
 async function day6() {
 
   let times = [];
@@ -30,15 +41,14 @@ async function day6() {
 
   await fileUtil.fileReader('/day6_input.txt', (input) => {
     if (times.length == 0) {
-      times = input.match(/\d+/g).map( (n) => +n);
+      times = input.match(/\d+/g);
     } else {
-      distances = input.match(/\d+/g).map( (n) => +n);
+      distances = input.match(/\d+/g);
     }    
   });
 
-  for(let i = 0; i < times.length; i++) {
-    getRange(times[i], distances[i]);
-  }
+  day6A(times, distances);
+  day6B(times, distances);
 }
 
 day6();
