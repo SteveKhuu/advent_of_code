@@ -2,17 +2,14 @@ const fileUtil = require('./common/filereader');
 
 class Range {
 
-  constructor(destination, startingPoint, rangeCount) {
-    this.mapping = this.mapping || {};
-    this.acceptableRange = {};
-    this.updateRange(destination, startingPoint, rangeCount);  
+  constructor(destination, startingPoint, rangeCount, index) {
+    this.mapping = {};
+    this.updateRange(destination, startingPoint, rangeCount);
+    this.name = `mapping-${index}`;
   }
 
   updateRange(destination, startingPoint, rangeCount) {
-    this.mapping[`${startingPoint}-${startingPoint + rangeCount - 1}`] = {
-      destination: destination,
-      range: rangeCount
-    }
+    this.mapping[`${startingPoint}-${startingPoint + rangeCount - 1}`] = destination
   }
 
   mapInput(input) {
@@ -25,7 +22,8 @@ class Range {
       let [startPoint, endPoint] = mappingKey.split('-').map((e) => +e);
 
       if (input >= startPoint && input <= endPoint) {
-        result = this.mapping[mappingKey].destination + (input - startPoint);
+        let destination = this.mapping[mappingKey];
+        result = destination + (input - startPoint);
         break;
       }
     }
@@ -35,7 +33,7 @@ class Range {
 };
 
 const getSeedMapping = (seed, mappings) => {
-
+  
   // Reduction is another quasi-fancy way of doing recursive iteration through our mappings
   return mappings.reduce((acc, mapping) => mapping.mapInput(acc),
     seed
@@ -43,30 +41,54 @@ const getSeedMapping = (seed, mappings) => {
 };
 
 const getLowestLocation = (seeds, mappings) => {
-  // let [seedToSoil, soilToFertilizer, fertilizerToWater, waterToLight, 
-  //   lightToTemperature, tempToHumidity, humidityToLocation] = mappings;
+  let lowestLocation = getSeedMapping(seeds[0], mappings);
 
-  let lowestLocation = getSeedMapping(seeds.shift(), mappings);
-
-  return seeds.reduce( (acc, seed) => Math.min(acc, getSeedMapping(seed, mappings)),
+  return [...seeds].slice(1).reduce( (acc, seed) => Math.min(acc, getSeedMapping(seed, mappings)),
     lowestLocation
   );
 };
 
-const getLowestLocationFromSeedRange = (seeds, mappings) => {
-  let [startingSeedNum, numSeeds] = [seeds.shift(), seeds.shift(), ...seeds];
-  let seedRange = Array(numSeeds).fill().map((seedNum, i) => startingSeedNum + i);
+const generateTheorticalSeed = (theorticalSeedNumber, mappings) => {
+  return getSeedMapping(theorticalSeedNumber, [...mappings].reverse());
+};
 
-  console.log(seedRange.length);
-  /*
-   * Day 5B: TBD, there's probably a way to do this without iterating through all generated seeds
-   * To think it though, we would just need to know the smallest mapping in each seed range
-   * 
-   * The smallest number can only be one of a few possibilities:
-   * - a number that falls through the mappings at some point
-   * - a nunber that falls through the smallest mapping
-   */
-  console.log(getLowestLocation(seedRange, mappings));
+const theroticalSeedExists = (seedNumber, seeds) => {
+  let seedExists = false;
+
+  for(let i = 0; i < seeds.length; i += 2) {
+    let startingSeedNum = seeds[i];
+    let numSeeds = seeds[i+1];
+
+    if (seedNumber >= startingSeedNum && seedNumber < (startingSeedNum + numSeeds)) {
+
+      console.log(`${startingSeedNum} <= ${seedNumber} < ${startingSeedNum + numSeeds}`)
+      seedExists = true;
+      break;
+    }
+  }
+
+  return seedExists;
+};
+
+/*
+  * Day 5B: If you're starting with a location, then we should be able to go bottoms up
+  * 
+  */
+const getLowestLocationFromSeedRange = (seeds, mappings) => {
+  let lowestSeed;
+  let theorticalLocationNumber = 20_000_000; // TBD, brute forced this.
+
+  while(!lowestSeed) {
+    // TODO: why is the inverse lookup producing a difference seed number?
+    const theroticalSeed = generateTheorticalSeed(theorticalLocationNumber, mappings);
+
+    if(theroticalSeedExists(theroticalSeed, seeds)) {
+      lowestSeed = theorticalLocationNumber;
+    }
+    theorticalLocationNumber++;
+  }
+
+  return lowestSeed;
 };
 
 async function day5A() {
@@ -83,7 +105,7 @@ async function day5A() {
       if (rangeInstance) {
         rangeInstance.updateRange(destination, startingPoint, rangeCount);
       } else {
-        rangeInstance = new Range(destination, startingPoint, rangeCount);
+        rangeInstance = new Range(destination, startingPoint, rangeCount, mappings.length);
       }
 
       // EOF is an another mapping entry
@@ -99,7 +121,8 @@ async function day5A() {
   });
 
   console.log(getLowestLocation(seeds, mappings));
-  getLowestLocationFromSeedRange(seeds, mappings);
+  console.log(getLowestLocationFromSeedRange(seeds, mappings));
+  
 
 };
 
