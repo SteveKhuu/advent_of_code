@@ -4,25 +4,40 @@ class Range {
 
   constructor(destination, startingPoint, rangeCount, index) {
     this.mapping = {};
+    this.inverseMapping = {};
     this.updateRange(destination, startingPoint, rangeCount);
     this.name = `mapping-${index}`;
   }
 
   updateRange(destination, startingPoint, rangeCount) {
     this.mapping[`${startingPoint}-${startingPoint + rangeCount - 1}`] = destination
+    this.inverseMapping[`${destination}-${destination + rangeCount - 1}`] = startingPoint
   }
 
-  mapInput(input) {
+  mapInput(input, inverse) {
     let result = input;
 
-    const keys = Object.keys(this.mapping);
+    let mapper; 
+    
+    /* 
+     * Piece de resistence for 5B
+     * if 50 mapped to 52, then 52 must map back to 50
+     */ 
+    if (inverse) {
+      mapper = this.inverseMapping;
+    } else {
+      mapper = this.mapping;
+    }
+
+    const keys = Object.keys(mapper);
 
     for(let i = 0; i < keys.length; i++) {
       let mappingKey = keys[i];
-      let [startPoint, endPoint] = mappingKey.split('-').map((e) => +e);
 
+      let [startPoint, endPoint] = mappingKey.split('-').map((e) => +e);
+      
       if (input >= startPoint && input <= endPoint) {
-        let destination = this.mapping[mappingKey];
+        let destination = mapper[mappingKey];
         result = destination + (input - startPoint);
         break;
       }
@@ -32,10 +47,10 @@ class Range {
   }
 };
 
-const getSeedMapping = (seed, mappings) => {
+const getSeedMapping = (seed, mappings, inverse = false) => {
   
   // Reduction is another quasi-fancy way of doing recursive iteration through our mappings
-  return mappings.reduce((acc, mapping) => mapping.mapInput(acc),
+  return mappings.reduce((acc, mapping) => mapping.mapInput(acc, inverse),
     seed
   );
 };
@@ -49,7 +64,7 @@ const getLowestLocation = (seeds, mappings) => {
 };
 
 const generateTheorticalSeed = (theorticalSeedNumber, mappings) => {
-  return getSeedMapping(theorticalSeedNumber, [...mappings].reverse());
+  return getSeedMapping(theorticalSeedNumber, [...mappings].reverse(), true);
 };
 
 const theroticalSeedExists = (seedNumber, seeds) => {
@@ -60,8 +75,6 @@ const theroticalSeedExists = (seedNumber, seeds) => {
     let numSeeds = seeds[i+1];
 
     if (seedNumber >= startingSeedNum && seedNumber < (startingSeedNum + numSeeds)) {
-
-      console.log(`${startingSeedNum} <= ${seedNumber} < ${startingSeedNum + numSeeds}`)
       seedExists = true;
       break;
     }
@@ -76,10 +89,9 @@ const theroticalSeedExists = (seedNumber, seeds) => {
   */
 const getLowestLocationFromSeedRange = (seeds, mappings) => {
   let lowestSeed;
-  let theorticalLocationNumber = 20_000_000; // TBD, brute forced this.
+  let theorticalLocationNumber = 20_000_000; // brute forced this.
 
   while(!lowestSeed) {
-    // TODO: why is the inverse lookup producing a difference seed number?
     const theroticalSeed = generateTheorticalSeed(theorticalLocationNumber, mappings);
 
     if(theroticalSeedExists(theroticalSeed, seeds)) {
@@ -91,7 +103,7 @@ const getLowestLocationFromSeedRange = (seeds, mappings) => {
   return lowestSeed;
 };
 
-async function day5A() {
+async function day5() {
   let seeds = [];
   let mappings = [];
   let rangeInstance;
@@ -120,10 +132,11 @@ async function day5A() {
     } 
   });
 
+  // Soln for 5A
   console.log(getLowestLocation(seeds, mappings));
-  console.log(getLowestLocationFromSeedRange(seeds, mappings));
-  
 
+  // Soln for 5B
+  console.log(getLowestLocationFromSeedRange(seeds, mappings));
 };
 
-day5A();
+day5();
